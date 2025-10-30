@@ -38,10 +38,11 @@ export function Compass({
           </div>
         )}
 
-        {/* Cercle extérieur avec marques cardinales - tourne avec le téléphone */}
+        {/* Cercle extérieur avec marques cardinales — fixe (ne bouge pas) */}
         <motion.div 
           className="absolute inset-0 rounded-full border-4 border-white/30"
-          animate={{ rotate: deviceHeading !== null && deviceHeading !== undefined ? -deviceHeading : 0 }}
+          // Cadran cardinal fixe (N/E/S/O) — ne tourne plus avec l'orientation du téléphone
+          animate={{ rotate: 0 }}
           transition={{ type: "spring", stiffness: 100, damping: 20 }}
         >
           <div className="absolute top-2 left-1/2 -translate-x-1/2 text-white/90">N</div>
