@@ -1,0 +1,25 @@
+# Dependencies and caches
+node_modules
+pnpm-lock.yaml
+.yarn
+.yarnrc.yml
+.pnpm-store
+
+# Build outputs
+build
+dist
+
+# VCS & IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db

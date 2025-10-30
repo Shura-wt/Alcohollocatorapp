@@ -12,17 +12,17 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# 2) Runtime stage: serve static files with Caddy (automatic HTTPS)
-FROM caddy:2.8-alpine
+# 2) Runtime stage: serve static files with Nginx (TLS handled by upstream reverse proxy)
+FROM nginx:1.27-alpine
 
-# Copy the compiled app to Caddy's web root
-COPY --from=build /app/build /usr/share/caddy
+# Copy the compiled app to Nginx web root
+COPY --from=build /app/build /usr/share/nginx/html
 
-# Provide Caddy configuration (domain + TLS + SPA fallback)
-COPY Caddyfile /etc/caddy/Caddyfile
+# Provide Nginx configuration (SPA fallback, gzip, caching)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose HTTP/HTTPS
+# Expose HTTP only (reverse proxy will provide HTTPS)
 EXPOSE 80
-EXPOSE 443
 
-# Caddy is the default entrypoint for this image
+# Optional healthcheck
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD wget -qO- http://localhost || exit 1

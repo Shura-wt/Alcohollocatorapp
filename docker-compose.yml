@@ -3,21 +3,18 @@ version: "3.8"
 services:
   app:
     build: .
-    image: alcohollocator:caddy
+    image: alcohollocator:nginx
     container_name: alcohollocator
     restart: unless-stopped
-    environment:
-      # Définir ces variables dans un fichier .env à la racine du projet
-      - APP_DOMAIN=${APP_DOMAIN}
-      - ACME_EMAIL=${ACME_EMAIL}
+    # If accessing directly without a reverse proxy, expose a host port
     ports:
-      - "8080:80"
-      - "443:443"
-    volumes:
-      # Caddy stocke les certificats/état ici (persistant)
-      - caddy_data:/data
-      - caddy_config:/config
+      - "${HOST_PORT:-8080}:80"
+    # If using Nginx Proxy Manager, you can remove the 'ports' section above
+    # and attach this service to the same external Docker network as NPM.
+    # networks:
+    #   - npm_proxy
 
-volumes:
-  caddy_data:
-  caddy_config:
+# Uncomment if you want to attach to an external network used by NPM
+# networks:
+#   npm_proxy:
+#     external: true
