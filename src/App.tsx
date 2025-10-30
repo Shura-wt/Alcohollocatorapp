@@ -179,7 +179,7 @@ export default function App() {
     return () => clearTimeout(timeoutId);
   }, [userLocation, filters]);
 
-  // Trouver l'établissement le plus proche et calculer la direction
+  // Sélection par défaut et maintien de la sélection utilisateur
   useEffect(() => {
     if (!userLocation || establishments.length === 0) {
       setSelectedEstablishment(null);
@@ -187,10 +187,9 @@ export default function App() {
     }
 
     // Filtrer les établissements selon les critères
-    let filteredEstablishments = establishments.filter((est) => {
+    const filteredEstablishments = establishments.filter((est) => {
       // Filtre ouvert/fermé
       if (filters.openOnly && !est.isOpen) return false;
-      
       return true;
     });
 
@@ -199,7 +198,19 @@ export default function App() {
       return;
     }
 
-    // Trouver le plus proche
+    // Si l'utilisateur a déjà sélectionné un établissement, on le conserve s'il est encore dans la liste
+    if (selectedEstablishment) {
+      const updated = filteredEstablishments.find(est => est.id === selectedEstablishment.id);
+      if (updated) {
+        // Mettre à jour la référence (ex: champs isOpen) sans casser la sélection
+        if (updated !== selectedEstablishment) {
+          setSelectedEstablishment(updated);
+        }
+        return;
+      }
+    }
+
+    // Sinon, sélectionner le plus proche par défaut
     let nearest = filteredEstablishments[0];
     let minDistance = calculateDistance(
       userLocation.lat,
@@ -208,26 +219,16 @@ export default function App() {
       nearest.lng
     );
 
-    filteredEstablishments.forEach((est) => {
+    for (const est of filteredEstablishments) {
       const dist = calculateDistance(userLocation.lat, userLocation.lng, est.lat, est.lng);
       if (dist < minDistance) {
         minDistance = dist;
         nearest = est;
       }
-    });
+    }
 
     setSelectedEstablishment(nearest);
-    setDistance(minDistance);
-
-    // Calculer la direction
-    const bearing = calculateBearing(
-      userLocation.lat,
-      userLocation.lng,
-      nearest.lat,
-      nearest.lng
-    );
-    setCompassDirection(bearing);
-  }, [userLocation, establishments, filters.openOnly]);
+  }, [userLocation, establishments, filters.openOnly, selectedEstablishment]);
 
 
   // Recalculer la distance quand l'établissement sélectionné change

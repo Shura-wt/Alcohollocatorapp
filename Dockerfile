@@ -24,5 +24,4 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Expose HTTP only (reverse proxy will provide HTTPS)
 EXPOSE 80
 
-# Optional healthcheck
-HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD wget -qO- http://localhost || exit 1
+# Nginx starts by default (CMD provided by base image)
