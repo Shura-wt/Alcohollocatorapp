@@ -82,6 +82,30 @@ export default function App() {
     }
   }, []);
 
+  // Suivre la position de l'utilisateur en continu
+  useEffect(() => {
+    if (!('geolocation' in navigator)) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      (error) => {
+        console.warn('Erreur watchPosition:', error);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 1000,
+        timeout: 5000,
+      }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
   // Charger les établissements depuis l'API Overpass avec debounce
   useEffect(() => {
     if (!userLocation) return;
@@ -205,22 +229,6 @@ export default function App() {
     setCompassDirection(bearing);
   }, [userLocation, establishments, filters.openOnly]);
 
-  // Actualisation périodique de la direction (simule le changement d'orientation)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (userLocation && selectedEstablishment) {
-        const bearing = calculateBearing(
-          userLocation.lat,
-          userLocation.lng,
-          selectedEstablishment.lat,
-          selectedEstablishment.lng
-        );
-        setCompassDirection(bearing);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [userLocation, selectedEstablishment]);
 
   // Recalculer la distance quand l'établissement sélectionné change
   useEffect(() => {
@@ -324,7 +332,7 @@ export default function App() {
               direction={compassDirection}
               distance={distance}
               establishmentName={selectedEstablishment.name}
-              deviceHeading={orientation.alpha}
+              deviceHeading={orientation.heading}
               onRequestOrientation={handleRequestOrientation}
               isOrientationActive={isActive}
             />

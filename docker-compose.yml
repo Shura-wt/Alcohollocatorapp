@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  app:
+    build: .
+    image: alcohollocator:caddy
+    container_name: alcohollocator
+    restart: unless-stopped
+    environment:
+      # Définir ces variables dans un fichier .env à la racine du projet
+      - APP_DOMAIN=${APP_DOMAIN}
+      - ACME_EMAIL=${ACME_EMAIL}
+    ports:
+      - "8080:80"
+      - "443:443"
+    volumes:
+      # Caddy stocke les certificats/état ici (persistant)
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

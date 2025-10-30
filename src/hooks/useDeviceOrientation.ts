@@ -4,6 +4,7 @@ interface DeviceOrientationState {
   alpha: number | null; // Rotation autour de l'axe Z (boussole, 0-360°)
   beta: number | null;  // Rotation autour de l'axe X (-180 à 180°)
   gamma: number | null; // Rotation autour de l'axe Y (-90 à 90°)
+  heading: number | null; // Cap boussole normalisé (0 = Nord)
   absolute: boolean;
   isSupported: boolean;
   hasPermission: boolean | null;
@@ -15,6 +16,7 @@ export function useDeviceOrientation() {
     alpha: null,
     beta: null,
     gamma: null,
+    heading: null,
     absolute: false,
     isSupported: typeof window !== 'undefined' && 'DeviceOrientationEvent' in window,
     hasPermission: null,
@@ -27,11 +29,37 @@ export function useDeviceOrientation() {
     if (!isActive) return;
 
     const handleOrientation = (event: DeviceOrientationEvent) => {
+      // Calcul du cap (heading) normalisé en degrés (0 = Nord)
+      let heading: number | null = null;
+      const anyEvent = event as any;
+
+      // iOS Safari fournit webkitCompassHeading (0 = Nord, augmente dans le sens horaire)
+      if (typeof anyEvent?.webkitCompassHeading === 'number') {
+        heading = anyEvent.webkitCompassHeading as number;
+      } else if (typeof event.alpha === 'number') {
+        // Fallback: convertir alpha (0 = Nord, mais sens anti-horaire) en cap classique
+        heading = (360 - (event.alpha as number)) % 360;
+      }
+
+      // Correction selon l'orientation de l'écran (portrait/paysage)
+      let screenAngle = 0;
+      const scr: any = window.screen as any;
+      if (scr?.orientation && typeof scr.orientation.angle === 'number') {
+        screenAngle = scr.orientation.angle as number;
+      } else if (typeof (window as any).orientation === 'number') {
+        screenAngle = (window as any).orientation as number;
+      }
+      if (heading !== null) {
+        heading = (heading + screenAngle) % 360;
+        if (heading < 0) heading += 360;
+      }
+
       setOrientation(prev => ({
         ...prev,
-        alpha: event.alpha,
-        beta: event.beta,
-        gamma: event.gamma,
+        alpha: event.alpha ?? null,
+        beta: event.beta ?? null,
+        gamma: event.gamma ?? null,
+        heading,
         absolute: event.absolute,
         hasPermission: true,
         error: null,
@@ -102,6 +130,7 @@ export function useDeviceOrientation() {
       alpha: null,
       beta: null,
       gamma: null,
+      heading: null,
     }));
   };
 
