@@ -27,6 +27,40 @@ function shortestDelta(a: number, b: number): number {
   return d;
 }
 
+// Compute compass heading from DeviceOrientation Euler angles (spec worked example)
+function computeCompassHeadingFromEuler(alpha: number, beta: number, gamma: number): number {
+  // Convert degrees to radians
+  const alphaRad = alpha * (Math.PI / 180);
+  const betaRad = beta * (Math.PI / 180);
+  const gammaRad = gamma * (Math.PI / 180);
+
+  // Calculate equation components
+  const cA = Math.cos(alphaRad);
+  const sA = Math.sin(alphaRad);
+  const cB = Math.cos(betaRad);
+  const sB = Math.sin(betaRad);
+  const cG = Math.cos(gammaRad);
+  const sG = Math.sin(gammaRad);
+
+  // Calculate A, B rotation components (C is not required for heading)
+  const rA = -cA * sG - sA * sB * cG;
+  const rB = -sA * sG + cA * sB * cG;
+  // const rC = -cB * cG;
+
+  // Calculate compass heading in radians
+  let compassHeading = Math.atan(rA / rB);
+
+  // Convert from half unit circle to whole unit circle
+  if (rB < 0) {
+    compassHeading += Math.PI;
+  } else if (rA < 0) {
+    compassHeading += 2 * Math.PI;
+  }
+
+  // Convert radians to degrees
+  return (compassHeading * 180) / Math.PI;
+}
+
 export function useDeviceOrientation() {
   const [orientation, setOrientation] = useState<DeviceOrientationState>({
     alpha: null,
@@ -227,18 +261,38 @@ export function useDeviceOrientation() {
       const handleOrientation = (event: DeviceOrientationEvent) => {
         let heading: number | null = null;
         const anyEvent = event as any;
+        const { alpha, beta, gamma, absolute } = event as any;
+
+        // iOS Safari provides webkitCompassHeading (already screen-corrected)
         if (typeof anyEvent?.webkitCompassHeading === 'number') {
           heading = anyEvent.webkitCompassHeading as number;
-        } else if (typeof event.alpha === 'number') {
-          heading = (360 - (event.alpha as number)) % 360;
+        } else if (
+          absolute === true &&
+          typeof alpha === 'number' &&
+          typeof beta === 'number' &&
+          typeof gamma === 'number'
+        ) {
+          // Spec-compliant absolute orientation: compute heading from Euler angles
+          try {
+            heading = computeCompassHeadingFromEuler(alpha, beta, gamma);
+          } catch (e) {
+            // Fallback below
+          }
         }
+
+        // Generic fallback: derive heading from alpha only (Android non-absolute)
+        if (heading === null && typeof alpha === 'number') {
+          heading = (360 - alpha) % 360;
+        }
+
         if (heading !== null) {
+          // Adjust for current screen orientation and normalize
           heading = normalizeAngle(heading + getScreenAngle());
           updateHeading(heading, {
-            alpha: event.alpha ?? null,
-            beta: event.beta ?? null,
-            gamma: event.gamma ?? null,
-            absolute: event.absolute,
+            alpha: (typeof alpha === 'number') ? alpha : null,
+            beta: (typeof beta === 'number') ? beta : null,
+            gamma: (typeof gamma === 'number') ? gamma : null,
+            absolute: !!absolute,
           });
         }
       };
