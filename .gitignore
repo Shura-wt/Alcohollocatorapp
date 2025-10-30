@@ -1,0 +1,12 @@
+/.idea/.gitignore
+/.idea/Alcohollocatorapp.iml
+/.idea/copilot.data.migration.agent.xml
+/.idea/copilot.data.migration.ask.xml
+/.idea/copilot.data.migration.ask2agent.xml
+/.idea/copilot.data.migration.edit.xml
+/.idea/material_theme_project_new.xml
+/.idea/modules.xml
+/.idea/vcs.xml
+
+/node_modules
+

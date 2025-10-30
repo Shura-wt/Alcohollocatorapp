@@ -1,4 +1,6 @@
 // Service pour l'autocomplétion des villes via Nominatim (OpenStreetMap)
+import { log as baseLog } from '../utils/logger';
+const log = baseLog.child('services:nominatim');
 
 export interface City {
   place_id: number;

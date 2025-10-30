@@ -8,6 +8,8 @@ import { queryOverpass, Establishment } from './services/overpass';
 import { getCityDetails, City } from './services/nominatim';
 import { useDeviceOrientation } from './hooks/useDeviceOrientation';
 import { toast, Toaster } from 'sonner@2.0.3';
+import { log as baseLog } from './utils/logger';
+const log = baseLog.child('App');
 
 export default function App() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
