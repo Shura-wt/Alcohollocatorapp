@@ -7,6 +7,7 @@ import { EstablishmentList } from './components/EstablishmentList';
 import { queryOverpass, Establishment } from './services/overpass';
 import { getCityDetails, City } from './services/nominatim';
 import { useDeviceOrientation } from './hooks/useDeviceOrientation';
+import { useGeolocation } from './hooks/useGeolocation';
 import { toast, Toaster } from 'sonner@2.0.3';
 import { log as baseLog } from './utils/logger';
 const log = baseLog.child('App');
@@ -19,6 +20,7 @@ export default function App() {
   const [distance, setDistance] = useState<number>(0);
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [didDefaultFallback, setDidDefaultFallback] = useState(false);
   
   const [filters, setFilters] = useState<FilterState>({
     searchMode: 'proximity',
@@ -30,6 +32,8 @@ export default function App() {
 
   // Hook pour l'orientation du téléphone
   const { orientation, requestPermission, stopTracking, isActive } = useDeviceOrientation();
+  // Hook géolocalisation résiliente
+  const geo = useGeolocation();
 
   // Fonction pour calculer la distance entre deux points (formule de Haversine)
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
@@ -61,52 +65,28 @@ export default function App() {
     return bearing;
   };
 
-  // Obtenir la position de l'utilisateur
+  // Démarrer/arrêter la géolocalisation résiliente
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        () => {
-          // Position par défaut (Paris) si la géolocalisation échoue
-          toast.info('Géolocalisation non disponible. Utilisation de Paris comme position par défaut.');
-          setUserLocation({ lat: 48.8566, lng: 2.3522 });
-        }
-      );
-    } else {
-      // Position par défaut (Paris)
-      toast.info('Géolocalisation non supportée. Utilisation de Paris comme position par défaut.');
-      setUserLocation({ lat: 48.8566, lng: 2.3522 });
+    geo.start();
+    return () => geo.stop();
+  }, []);
+
+  // Propager la position du hook vers l'état de l'app
+  useEffect(() => {
+    if (geo.location) {
+      setUserLocation({ lat: geo.location.lat, lng: geo.location.lng });
     }
-  }, []);
+  }, [geo.location]);
 
-  // Suivre la position de l'utilisateur en continu
+  // Fallback par défaut (Paris) si géolocalisation indisponible et aucune position
   useEffect(() => {
-    if (!('geolocation' in navigator)) return;
+    if (!userLocation && geo.error && !didDefaultFallback) {
+      toast.info('Géolocalisation indisponible. Utilisation de Paris comme position par défaut.');
+      setUserLocation({ lat: 48.8566, lng: 2.3522 });
+      setDidDefaultFallback(true);
+    }
+  }, [geo.error, userLocation, didDefaultFallback]);
 
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        setUserLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-      },
-      (error) => {
-        console.warn('Erreur watchPosition:', error);
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 1000,
-        timeout: 5000,
-      }
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
 
   // Charger les établissements depuis l'API Overpass avec debounce
   useEffect(() => {
